@@ -1,7 +1,10 @@
 package gregtech.common.blocks;
 
+import static gregtech.api.enums.HeatingCoilLevel.*;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.enums.HeatingCoilLevel;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Textures;
 import gregtech.api.objects.GT_CopiedBlockTexture;
@@ -54,5 +57,42 @@ public class GT_Block_Casings5
                 return Textures.BlockIcons.MACHINE_COIL_NAQUADAHALLOY.getIcon();
         }
         return Textures.BlockIcons.MACHINE_COIL_CUPRONICKEL.getIcon();
+    }
+
+    /*--------------- COIL CHECK IMPL. ------------*/
+
+    public static HeatingCoilLevel getCoilHeatFromDamage(int meta) {
+        switch (meta) {
+            case 0:
+                return LV;
+            case 1:
+                return MV;
+            case 2:
+                return HV;
+            case 3:
+                return EV;
+            case 4:
+                return IV;
+            case 5:
+                return ZPM;
+            case 6:
+                return UV;
+            case 7:
+                return UEV;
+            case 8:
+                return UIV;
+            case 9:
+                return LuV;
+            case 10:
+                return UHV;
+            case 11:
+                return UMV;
+            case 12:
+                return UXV;
+            case 13:
+                return MAX;
+            default:
+                return None;
+        }
     }
 }
