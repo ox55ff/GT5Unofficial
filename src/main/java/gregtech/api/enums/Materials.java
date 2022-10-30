@@ -2201,16 +2201,6 @@ public class Materials implements IColorModulationContainer, ISubTagContainer {
     	return GT_OreDictUnificator.get(OrePrefixes.plate, this, amount);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof Materials && mMetaItemSubID == ((Materials)o).mMetaItemSubID;
-    }
-
-    @Override
-    public int hashCode() {
-        return mMetaItemSubID*31;
-    }
-
     public static Map<Fluid, Materials> materialFluidMap = new HashMap<>();
     public static Materials forFluid(Fluid fluid) {
         if (fluid == null) {
