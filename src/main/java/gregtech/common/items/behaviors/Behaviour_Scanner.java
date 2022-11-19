@@ -197,6 +197,12 @@ public class Behaviour_Scanner
             }
             try {
                 if (ScanModes.DEFAULT == scanMode && tTileEntity instanceof IMachineProgress) {
+                    if (((IMachineProgress) tTileEntity).isAllowedToWork()) {
+                        tList.add("Disabled."  + EnumChatFormatting.RED + EnumChatFormatting.RESET);
+                    }
+                    if (((IMachineProgress) tTileEntity).wasShutdown()) {
+                        tList.add("Shut down due to power loss." + EnumChatFormatting.RED + EnumChatFormatting.RESET);
+                    }
                     rEUAmount += 400;
                     int tValue = 0;
                     if (0 < (tValue = ((IMachineProgress) tTileEntity).getMaxProgress()))

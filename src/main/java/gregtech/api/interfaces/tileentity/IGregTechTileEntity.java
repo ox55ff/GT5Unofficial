@@ -126,4 +126,5 @@ public interface IGregTechTileEntity extends ITexturedTileEntity, IGearEnergyTil
 
     public void onEntityCollidedWithBlock(World aWorld, int aX, int aY, int aZ, Entity collider);
 
+    default void setShutdownStatus(boolean newStatus) {return;}
 }

@@ -247,7 +247,7 @@ public class GT_Achievements {
         if (special) {
             achievement.setSpecial();
         }
-        achievement.registerStat();
+        ((StatBase)achievement).registerStat();
         if (GT_Values.D2) {
             GT_Log.out.println("achievement." + textId + "=");
             GT_Log.out.println("achievement." + textId + ".desc=");
@@ -265,7 +265,7 @@ public class GT_Achievements {
         if (special) {
             achievement.setSpecial();
         }
-        achievement.registerStat();
+        ((StatBase)achievement).registerStat();
         if (GT_Values.D2) {
             GT_Log.out.println("achievement." + textId + "=");
             GT_Log.out.println("achievement." + textId + ".desc=");

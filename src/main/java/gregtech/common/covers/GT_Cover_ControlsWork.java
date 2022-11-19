@@ -4,6 +4,7 @@ import gregtech.api.enums.GT_Values;
 import gregtech.api.gui.GT_GUICover;
 import gregtech.api.gui.widgets.GT_GuiIcon;
 import gregtech.api.gui.widgets.GT_GuiIconButton;
+import gregtech.api.gui.widgets.GT_GuiIconCheckButton;
 import gregtech.api.interfaces.tileentity.ICoverable;
 import gregtech.api.interfaces.tileentity.IMachineProgress;
 import gregtech.api.net.GT_Packet_TileEntityCover;
@@ -17,11 +18,35 @@ public class GT_Cover_ControlsWork extends GT_CoverBehavior {
 
     public int doCoverThings(byte aSide, byte aInputRedstone, int aCoverID, int aCoverVariable, ICoverable aTileEntity, long aTimer) {
         if (aTileEntity instanceof IMachineProgress) {
-            if ((aInputRedstone > 0) == (aCoverVariable == 0) && aCoverVariable != 2)
-                ((IMachineProgress) aTileEntity).enableWorking();
-            else
+            if (aCoverVariable < 2) {
+                if ((aInputRedstone > 0) == (aCoverVariable == 0))
+                    ((IMachineProgress) aTileEntity).enableWorking();
+                else
+                    ((IMachineProgress) aTileEntity).disableWorking();
+                ((IMachineProgress) aTileEntity).setWorkDataValue(aInputRedstone);
+            }
+            else if (aCoverVariable == 2) {
                 ((IMachineProgress) aTileEntity).disableWorking();
-            ((IMachineProgress) aTileEntity).setWorkDataValue(aInputRedstone);
+            } else {
+                if (((IMachineProgress) aTileEntity).wasShutdown()) {
+                    ((IMachineProgress) aTileEntity).disableWorking();
+                    if (!mPlayerNotified) {
+                        mPlayerNotified = true;
+                        GT_Utility.sendChatToPlayer(
+                                lastPlayer,
+                                aTileEntity.getInventoryName() + "at "
+                                        + String.format(
+                                        "(%d,%d,%d)",
+                                        aTileEntity.getXCoord(),
+                                        aTileEntity.getYCoord(),
+                                        aTileEntity.getZCoord())
+                                        + " shut down.");
+                    }
+                    return 2;
+                } else {
+                    return 3 + doCoverThings(aSide,aInputRedstone, aCoverID, aCoverVariable - 3, aTileEntity, aTimer);
+                }
+            }
         }
         return aCoverVariable;
     }
@@ -59,17 +84,24 @@ public class GT_Cover_ControlsWork extends GT_CoverBehavior {
     }
 
     public int onCoverScrewdriverclick(byte aSide, int aCoverID, int aCoverVariable, ICoverable aTileEntity, EntityPlayer aPlayer, float aX, float aY, float aZ) {
-        aCoverVariable = (aCoverVariable + (aPlayer.isSneaking()? -1 : 1)) % 3;
+        aCoverVariable = (aCoverVariable + (aPlayer.isSneaking()? -1 : 1)) % 5;
         if(aCoverVariable <0){aCoverVariable = 2;}
         if (aCoverVariable == 0) {
-            GT_Utility.sendChatToPlayer(aPlayer, trans("003", "Normal"));
+            GT_Utility.sendChatToPlayer(aPlayer, trans("003", "Enable with Signal"));
         }
         if (aCoverVariable == 1) {
-            GT_Utility.sendChatToPlayer(aPlayer, trans("004", "Inverted"));
+            GT_Utility.sendChatToPlayer(aPlayer, trans("004", "Disable with Signal"));
         }
         if (aCoverVariable == 2) {
-            GT_Utility.sendChatToPlayer(aPlayer, trans("005", "No Work at all"));
+            GT_Utility.sendChatToPlayer(aPlayer, trans("005", "Disabled"));
         }
+        if (aCoverVariable == 3) {
+            GT_Utility.sendChatToPlayer(aPlayer, trans("505", "Enable with Signal (Safe)"));
+        }
+        if (aCoverVariable == 4) {
+            GT_Utility.sendChatToPlayer(aPlayer, trans("506", "Disable with Signal (Safe)"));
+        }
+        // TODO: Set lastPlayer
         return aCoverVariable;
     }
 
@@ -111,6 +143,9 @@ public class GT_Cover_ControlsWork extends GT_CoverBehavior {
             b = new GT_GuiIconButton(this, 0, startX + spaceX * 0, startY + spaceY * 0, GT_GuiIcon.REDSTONE_ON);
             b = new GT_GuiIconButton(this, 1, startX + spaceX * 0, startY + spaceY * 1, GT_GuiIcon.REDSTONE_OFF);
             b = new GT_GuiIconButton(this, 2, startX + spaceX * 0, startY + spaceY * 2, GT_GuiIcon.CROSS);
+
+            new GT_GuiIconCheckButton(this, 3, startX + spaceX * 0, startY + spaceY * 3, GT_GuiIcon.CHECKMARK, GT_GuiIcon.CROSS)
+                    .setChecked(aCoverVariable > 2);
         }
 
         @Override
@@ -119,6 +154,7 @@ public class GT_Cover_ControlsWork extends GT_CoverBehavior {
             this.fontRendererObj.drawString(trans("243", "Enable with Redstone"), 3+startX + spaceX*1, 4+startY+spaceY*0, 0xFF555555);
             this.fontRendererObj.drawString(trans("244", "Disable with Redstone"),3+startX + spaceX*1, 4+startY+spaceY*1, 0xFF555555);
             this.fontRendererObj.drawString(trans("245", "Disable machine"),              3+startX + spaceX*1, 4+startY+spaceY*2, 0xFF555555);
+            this.fontRendererObj.drawString(trans("507", "Safe Mode"), 3+startX + spaceX*1, 4+startY+spaceY*3, 0xFF555555);
         }
 
         @Override
@@ -128,7 +164,14 @@ public class GT_Cover_ControlsWork extends GT_CoverBehavior {
 
         public void buttonClicked(GuiButton btn) {
             if (getClickable(btn.id)) {
-                coverVariable = getNewCoverVariable(btn.id);
+                int bID = btn.id;
+                if (bID == 3) {
+                    ((GT_GuiIconCheckButton) btn).setChecked(!((GT_GuiIconCheckButton) btn).isChecked());
+                } else {
+                    coverVariable = getNewCoverVariable(bID);
+                }
+                adjustCoverVariable();
+                // TODO: Set lastPlayer;
                 GT_Values.NW.sendToServer(new GT_Packet_TileEntityCover(side, coverID, coverVariable, tile));
             }
             updateButtons();
@@ -147,7 +190,18 @@ public class GT_Cover_ControlsWork extends GT_CoverBehavior {
         }
 
         private boolean getClickable(int id) {
-            return id != coverVariable;
+            return ((id != coverVariable && id != coverVariable - 3) || id == 3);
         }
+
+        private void adjustCoverVariable() {
+            boolean safeMode = ((GT_GuiIconCheckButton) buttonList.get(3)).isChecked();
+            if (safeMode && coverVariable < 2) {
+                coverVariable += 3;
+            }
+            if (!safeMode && coverVariable > 2) {
+                coverVariable -= 3;
+            }
+        }
+
     }
 }
